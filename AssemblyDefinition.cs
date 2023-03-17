@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
+﻿using System.Reflection;
 
 namespace Loxifi
 {
-    internal class AssemblyDefinition
-    {
-        public Assembly? ContainingAssembly { get; set; }
+	internal class AssemblyDefinition
+	{
+		public Assembly? ContainingAssembly { get; set; }
 
-        public List<Type> LoadedTypes { get; set; } = new List<Type>();
-    }
+		public List<Type> LoadedTypes { get; set; } = new List<Type>();
+	}
 }
