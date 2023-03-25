@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Loxifi.TypeFactory", "Loxifi.TypeFactory.csproj", "{99906D67-B2DC-4AC2-8181-D8A529370318}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loxifi.TypeFactory", "Loxifi.TypeFactory.csproj", "{99906D67-B2DC-4AC2-8181-D8A529370318}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Loxifi.TypeFactory.Tests", "Tests\Loxifi.TypeFactory.Tests.csproj", "{BBAE213D-AF22-499D-BF7A-95BA0CE7BD08}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestBinaries", "Tests\TestBinaries\TestBinaries.csproj", "{C9A60E3C-530C-4946-B3A1-EE1CD3CD5D89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{99906D67-B2DC-4AC2-8181-D8A529370318}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99906D67-B2DC-4AC2-8181-D8A529370318}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99906D67-B2DC-4AC2-8181-D8A529370318}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBAE213D-AF22-499D-BF7A-95BA0CE7BD08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBAE213D-AF22-499D-BF7A-95BA0CE7BD08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBAE213D-AF22-499D-BF7A-95BA0CE7BD08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBAE213D-AF22-499D-BF7A-95BA0CE7BD08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9A60E3C-530C-4946-B3A1-EE1CD3CD5D89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9A60E3C-530C-4946-B3A1-EE1CD3CD5D89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9A60E3C-530C-4946-B3A1-EE1CD3CD5D89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9A60E3C-530C-4946-B3A1-EE1CD3CD5D89}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

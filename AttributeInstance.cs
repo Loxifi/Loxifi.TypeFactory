@@ -1,11 +1,12 @@
-﻿using System.Reflection;
+﻿using Loxifi.Interfaces;
+using System.Reflection;
 
 namespace Loxifi
 {
 	/// <summary>
 	/// An instance of an attribute
 	/// </summary>
-	public class AttributeInstance
+	internal class AttributeInstance<T> : IAttributeInstance<T> where T : Attribute
 	{
 		private const string NULL_ATTRIBUTE_MESSAGE = "Can not instantiate null attribute instance";
 
@@ -19,7 +20,7 @@ namespace Loxifi
 		/// <summary>
 		/// And instantiated version of the attribute
 		/// </summary>
-		public Attribute Instance { get; set; }
+		public T Instance { get; set; }
 
 		/// <summary>
 		/// Is this attribute defined on a parent type/overridden property from where it was retrieved?
@@ -36,7 +37,7 @@ namespace Loxifi
 		/// <param name="declaringMember">Where the attribute was declared</param>
 		/// <param name="instance">An instance of this attribute</param>
 		/// <param name="isInherited">Is this attribute defined on a parent type/overridden property from where it was retrieved?</param>
-		public AttributeInstance(MemberInfo declaringMember, Attribute instance, bool isInherited)
+		public AttributeInstance(MemberInfo declaringMember, T instance, bool isInherited)
 		{
 			if (instance is null)
 			{
