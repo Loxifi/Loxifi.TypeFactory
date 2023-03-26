@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TestBinaries
+﻿namespace TestBinaries
 {
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1018:Mark attributes with AttributeUsageAttribute", Justification = "<Pending>")]
 	internal class TestAttribute : Attribute
 	{
 	}

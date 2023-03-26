@@ -5,12 +5,11 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<PackageProjectUrl>http://loxifi.com/Projects/Loxifi.TypeFactory</PackageProjectUrl>
-		<Version>0.3.1</Version>
+		<Version>0.9.1</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageIcon>Properties\Icon.png</PackageIcon>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Description>
-			!This port has not yet been tested!
 			A class used to simplify reflective queries. Includes the ability to do things like find all interface implementations, find most derived types, or strip runtime generated wrapping types
 		</Description>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>

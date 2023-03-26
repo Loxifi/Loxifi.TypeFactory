@@ -10,10 +10,10 @@
 
 		public AssemblyLoadFailure(string assemblyPath, Exception exception) : this(new FileInfo(assemblyPath), exception)
 		{
-
 		}
 
 		public FileInfo AssemblyInfo { get; set; }
+
 		public Exception Exception { get; set; }
 	}
 }

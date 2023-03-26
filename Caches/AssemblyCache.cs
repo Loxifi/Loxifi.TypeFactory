@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+﻿using Loxifi.Exceptions;
+using Loxifi.Interfaces;
+using Loxifi.Interfaces.Settings;
+using Loxifi.Settings;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Loxifi.Caches
@@ -6,147 +10,251 @@ namespace Loxifi.Caches
 	/// <summary>
 	/// Manages caching and loading assemblies
 	/// </summary>
-	public static class AssemblyCache
+	public class AssemblyCache : IAssemblyCache
 	{
-		/// <summary>
-		/// All extensions that will be loaded as assemblies
-		/// </summary>
-		public static IEnumerable<string> AssemblyExtensions
+		private readonly IAssemblyCacheSettings _assemblyCacheSettings;
+		private readonly IAssemblyLoader _assemblyLoader;
+		private readonly IAppDomainIntegrator _appDomainIntegrator;
+		private readonly List<CachedAssembly> _cachedAssemblies = new();
+
+		public AssemblyCache(IAssemblyCacheSettings? assemblyCacheSettings = null)
 		{
-			get
+			assemblyCacheSettings ??= new AssemblyCacheSettings();
+
+			this._assemblyCacheSettings = assemblyCacheSettings;
+			this._assemblyLoader = assemblyCacheSettings.AssemblyLoader;
+			this._appDomainIntegrator = assemblyCacheSettings.AppDomainIntegrator;
+
+			this._appDomainIntegrator.AssemblyLoad += this.AppDomain_AssemblyLoad;
+
+			foreach (string assemblyLoadPath in this._assemblyLoader.ValidAssemblyPaths)
 			{
-				yield return ".exe";
-				yield return ".dll";
-			}
-		}
-
-		/// <summary>
-		/// All paths that assemblies are potentially found in
-		/// </summary>
-		public static IEnumerable<string> AssemblyLoadPaths
-		{
-			get
-			{
-				yield return AppDomain.CurrentDomain.BaseDirectory;
-
-				if (AppDomain.CurrentDomain.RelativeSearchPath != null)
-				{
-					yield return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.RelativeSearchPath);
-				}
-			}
-		}
-
-		static AssemblyCache()
-		{
-			AppDomain.CurrentDomain.AssemblyLoad += AppDomain_AssemblyLoad;
-
-			foreach (string assemblyLoadPath in AssemblyLoadPaths)
-			{
-				foreach (string ext in AssemblyExtensions)
-				{
-					foreach (string file in Directory.EnumerateFiles(assemblyLoadPath, $"*{ext}"))
-					{
-						_cachedAssemblies.Add(new CachedAssembly(file));
-					}
-				}
+				this._cachedAssemblies.Add(new CachedAssembly(assemblyLoadPath));
 			}
 
-			foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (Assembly a in _appDomainIntegrator.GetCurrentAssemblies())
 			{
-				MarkAsLoaded(a);
-			}
-		}
-
-		public static Assembly GetByName(string name)
-		{
-			for (int i = 0; i < _cachedAssemblies.Count; i++)
-			{
-				if (_cachedAssemblies[i].IsLoaded && _cachedAssemblies[i].Name == name)
-				{
-					return _cachedAssemblies[i].Assembly;
-				}
-			}
-
-			_ = TryGetOrLoad(name, out Assembly assembly);
-
-			return assembly;
-		}
-
-		/// <summary>
-		/// Gets the paths of all detected assemblies that are not loaded
-		/// </summary>
-		public static IEnumerable<string> Unloaded
-		{
-			get
-			{
-				for (int i = 0; i < _cachedAssemblies.Count; i++)
-				{
-					if (!_cachedAssemblies[i].IsLoaded)
-					{
-						yield return _cachedAssemblies[i].Path;
-					}
-				}
+				this.MarkAsLoaded(a);
 			}
 		}
 
 		/// <summary>
 		/// A collection of all loaded assemblies
 		/// </summary>
-		public static IEnumerable<Assembly> Loaded
+		public IEnumerable<Assembly> Loaded
 		{
 			get
 			{
-				for (int i = 0; i < _cachedAssemblies.Count; i++)
+				for (int i = 0; i < this._cachedAssemblies.Count; i++)
 				{
-					if (_cachedAssemblies[i].IsLoaded)
+					if (this._cachedAssemblies[i].IsLoaded)
 					{
-						yield return _cachedAssemblies[i].Assembly;
+						yield return this._cachedAssemblies[i].Assembly;
 					}
 				}
 			}
 		}
 
-		private static void AppDomain_AssemblyLoad(object? sender, AssemblyLoadEventArgs args) => MarkAsLoaded(args.LoadedAssembly);
+		/// <summary>
+		/// A collection of all assemblies, loaded and unloaded
+		/// Loads assemblies as it iterates so all assemblies will
+		/// be loaded if enumeration completes
+		/// </summary>
+		public IEnumerable<Assembly> LoadedAndUnloaded
+		{
+			get
+			{
+				HashSet<Assembly> returned = new();
+				foreach (Assembly assembly in this.Loaded)
+				{
+					yield return assembly;
+					_ = returned.Add(assembly);
+				}
 
-		private static void AddAsLoaded(Assembly a, string? assemblyPath)
+				for (int i = 0; i < this._cachedAssemblies.Count; i++)
+				{
+					CachedAssembly ca = this._cachedAssemblies[i];
+
+					if (ca.IsLoaded)
+					{
+						if (returned.Add(ca.Assembly))
+						{
+							yield return ca.Assembly;
+						}
+					}
+					else
+					{
+						if (this.TryGetOrLoad(ca.Path, out Assembly loaded))
+						{
+							yield return loaded;
+							_ = returned.Add(loaded);
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets the paths of all detected assemblies that are not loaded
+		/// </summary>
+		public IEnumerable<string> Unloaded
+		{
+			get
+			{
+				for (int i = 0; i < this._cachedAssemblies.Count; i++)
+				{
+					if (!this._cachedAssemblies[i].IsLoaded)
+					{
+						yield return this._cachedAssemblies[i].Path;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets an assembly by its name
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public Assembly GetByName(string name)
+		{
+			for (int i = 0; i < this._cachedAssemblies.Count; i++)
+			{
+				if (this._cachedAssemblies[i].IsLoaded && this._cachedAssemblies[i].Name == name)
+				{
+					return this._cachedAssemblies[i].Assembly;
+				}
+			}
+
+			_ = this.TryGetOrLoad(name, out Assembly assembly);
+
+			return assembly;
+		}
+
+		/// <summary>
+		/// Returns true if the assembly referenced failed the 
+		/// last loading attempt
+		/// </summary>
+		/// <param name="assemblyPath"></param>
+		/// <returns></returns>
+		public bool FailedLoading(string assemblyPath)
+		{
+			for (int i = 0; i < this._cachedAssemblies.Count; i++)
+			{
+				if (this._cachedAssemblies[i].Path == assemblyPath)
+				{
+					return this._cachedAssemblies[i].LoadFailed;
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Gets a loaded instance of the specified assembly path
+		/// if the assembly is not loaded, attempts to load it
+		/// </summary>
+		/// <param name="assemblyPath"></param>
+		/// <param name="result"></param>
+		/// <returns></returns>
+		public bool TryGetOrLoad(string assemblyPath, out Assembly? result)
+		{
+			if (this.IsLoaded(assemblyPath, out result))
+			{
+				return true;
+			}
+
+			if (this.FailedLoading(assemblyPath))
+			{
+				result = null;
+				return false;
+			}
+
+			result = Dispatcher.Current.Invoke(() =>
+			{
+				try
+				{
+					Assembly loaded = this._assemblyCacheSettings.AssemblyLoader.Load(assemblyPath);
+
+					foreach (CachedAssembly assembly in this._cachedAssemblies)
+					{
+						if (assembly.Path == assemblyPath)
+						{
+							assembly.Assembly = loaded;
+							assembly.Name = loaded.FullName;
+							break;
+						}
+					}
+
+					return loaded;
+				}
+				catch (Exception ex)
+				{
+					this.MarkAsFailedLoading(assemblyPath);
+					this._assemblyCacheSettings.OnAssemblyLoadException?.Invoke(new AssemblyLoadException(assemblyPath, ex));
+					return null;
+				}
+			}
+			);
+
+			return result != null;
+		}
+
+		/// <summary>
+		/// Adds the assembly to the cache as having already been loaded
+		/// </summary>
+		/// <param name="a"></param>
+		/// <param name="assemblyPath"></param>
+		private void AddAsLoaded(Assembly a, string? assemblyPath)
 		{
 			assemblyPath ??= a.Location;
 
 			Dispatcher.Current.Invoke(() =>
 			{
-				_cachedAssemblies.Add(new CachedAssembly(assemblyPath)
+				this._cachedAssemblies.Add(new CachedAssembly(assemblyPath)
 				{
 					Assembly = a,
 					IsLoaded = true
 				});
 			});
 		}
-
-		private static void MarkAsLoaded(Assembly a)
+		
+		/// <summary>
+		/// Adds the assembly to the cache as having failed loading.
+		/// For when assemblies are being loaded but the metadata 
+		/// isn't from the cache
+		/// </summary>
+		/// <param name="assemblyPath"></param>
+		private void AddAsFailed(string assemblyPath)
 		{
-			string assemblyPath = a.Location;
-
-			for (int i = 0; i < _cachedAssemblies.Count; i++)
+			Dispatcher.Current.Invoke(() =>
 			{
-				if (_cachedAssemblies[i].Path == assemblyPath)
+				this._cachedAssemblies.Add(new CachedAssembly(assemblyPath)
 				{
-					_cachedAssemblies[i].IsLoaded = true;
-					_cachedAssemblies[i].Assembly = a;
-					_cachedAssemblies[i].Name = a.FullName;
-					return;
-				}
-			}
-
-			AddAsLoaded(a, assemblyPath);
+					IsLoaded = false,
+					LoadFailed = true
+				});
+			});
 		}
 
-		private static readonly List<CachedAssembly> _cachedAssemblies = new();
+		/// <summary>
+		/// Occurs on an app domain unload
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="args"></param>
+		private void AppDomain_AssemblyLoad(object? sender, AssemblyLoadEventArgs args) => this.MarkAsLoaded(args.LoadedAssembly);
 
-		private static bool IsLoaded(string assemblyPath, out Assembly? loaded)
+		/// <summary>
+		/// Returns true if the given assembly is loaded
+		/// </summary>
+		/// <param name="assemblyPath"></param>
+		/// <param name="loaded">The loaded instance of the assembly</param>
+		/// <returns></returns>
+		private bool IsLoaded(string assemblyPath, out Assembly? loaded)
 		{
 			loaded = Dispatcher.Current.Invoke(() =>
 			{
-				foreach (CachedAssembly assembly in _cachedAssemblies)
+				foreach (CachedAssembly assembly in this._cachedAssemblies)
 				{
 					if (assembly.Path == assemblyPath)
 					{
@@ -161,85 +269,50 @@ namespace Loxifi.Caches
 		}
 
 		/// <summary>
-		/// Gets a loaded instance of the specified assembly path
-		/// if the assembly is not loaded, attempts to load it
+		/// Finds the assembly in the cache and marks it as failed loading. 
+		/// If the assembly isn't in the cache, it will be added 
 		/// </summary>
 		/// <param name="assemblyPath"></param>
-		/// <param name="result"></param>
-		/// <returns></returns>
-		public static bool TryGetOrLoad(string assemblyPath, out Assembly? result)
+		private void MarkAsFailedLoading(string assemblyPath)
 		{
-			if (IsLoaded(assemblyPath, out result))
+			for (int i = 0; i < this._cachedAssemblies.Count; i++)
 			{
-				return true;
-			}
-
-			result = Dispatcher.Current.Invoke(() =>
-			{
-				try
+				if (this._cachedAssemblies[i].Path == assemblyPath)
 				{
-#if NETCOREAPP3_0_OR_GREATER
-					Assembly loaded = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
-#endif
-
-#if NETSTANDARD
-					Assembly loaded = Assembly.LoadFrom(assemblyPath);
-#endif
-
-					foreach (CachedAssembly assembly in _cachedAssemblies)
-					{
-						if (assembly.Path == assemblyPath)
-						{
-							assembly.Assembly = loaded;
-							assembly.Name = loaded.FullName;
-							break;
-						}
-					}
-
-					return loaded;
-				}
-				catch (Exception ex)
-				{
-					return null;
+					this._cachedAssemblies[i].LoadFailed = true;
+					return;
 				}
 			}
-			);
 
-			return result != null;
+			this.AddAsFailed(assemblyPath);
 		}
 
-		public static IEnumerable<Assembly> LoadedAndUnloaded
+		/// <summary>
+		/// Finds the assembly in the cache and marks it as loaded.
+		/// If the assembly isn't already in the cache, it will be added
+		/// </summary>
+		/// <param name="a"></param>
+		private void MarkAsLoaded(Assembly a)
 		{
-			get
+			if(a.IsDynamic && _assemblyCacheSettings.CacheDynamic)
 			{
-				HashSet<Assembly> returned = new();
-				foreach (Assembly assembly in Loaded)
-				{
-					yield return assembly;
-					_ = returned.Add(assembly);
-				}
+				return;
+			}
 
-				for (int i = 0; i < _cachedAssemblies.Count; i++)
-				{
-					CachedAssembly ca = _cachedAssemblies[i];
+			string assemblyPath = a.IsDynamic ? a.FullName : a.Location;
 
-					if (ca.IsLoaded)
-					{
-						if (returned.Add(ca.Assembly))
-						{
-							yield return ca.Assembly;
-						}
-					}
-					else
-					{
-						if (TryGetOrLoad(ca.Path, out Assembly loaded))
-						{
-							yield return loaded;
-							_ = returned.Add(loaded);
-						}
-					}
+			for (int i = 0; i < this._cachedAssemblies.Count; i++)
+			{
+				if (this._cachedAssemblies[i].Path == assemblyPath)
+				{
+					this._cachedAssemblies[i].IsLoaded = true;
+					this._cachedAssemblies[i].Assembly = a;
+					this._cachedAssemblies[i].Name = a.FullName;
+					return;
 				}
 			}
+
+			this.AddAsLoaded(a, assemblyPath);
 		}
 	}
 
@@ -257,8 +330,8 @@ namespace Loxifi.Caches
 
 		public bool LoadFailed { get; set; }
 
-		public string Path { get; private set; }
-
 		public string Name { get; set; }
+
+		public string Path { get; private set; }
 	}
 }

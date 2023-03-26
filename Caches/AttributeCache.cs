@@ -7,9 +7,9 @@ namespace Loxifi.Caches
 	/// <summary>
 	/// For getting/caching attributes
 	/// </summary>
-	public static class AttributeCache
+	public class AttributeCache : IAttributeCache
 	{
-		private static readonly ConcurrentDictionary<MemberInfo, List<Attribute>> _cachedAttributes = new();
+		private readonly ConcurrentDictionary<MemberInfo, List<Attribute>> _cachedAttributes = new();
 
 		/// <summary>
 		/// Gets a custom attribute for the member
@@ -18,7 +18,7 @@ namespace Loxifi.Caches
 		/// <param name="m"></param>
 		/// <param name="inherited"></param>
 		/// <returns></returns>
-		public static T? GetCustomAttribute<T>(MemberInfo m, bool inherited = true) where T : Attribute => GetCustomAttributes<T>(m, inherited).SingleOrDefault();
+		public T? GetCustomAttribute<T>(MemberInfo m, bool inherited = true) where T : Attribute => this.GetCustomAttributes<T>(m, inherited).SingleOrDefault();
 
 		/// <summary>
 		/// Gets a custom attribute for the member
@@ -26,7 +26,7 @@ namespace Loxifi.Caches
 		/// <typeparam name="TIn"></typeparam>
 		/// <typeparam name="TOut"></typeparam>
 		/// <returns></returns>
-		public static TOut? GetCustomAttribute<TIn, TOut>() where TOut : Attribute => GetCustomAttribute<TOut>(typeof(TIn));
+		public TOut? GetCustomAttribute<TIn, TOut>() where TOut : Attribute => this.GetCustomAttribute<TOut>(typeof(TIn));
 
 		/// <summary>
 		/// Gets all custom attributes for the member
@@ -35,17 +35,17 @@ namespace Loxifi.Caches
 		/// <param name="m"></param>
 		/// <param name="inherited"></param>
 		/// <returns></returns>
-		public static IEnumerable<IAttributeInstance<T>> GetCustomAttributeInstances<T>(MemberInfo m, bool inherited = true) where T : Attribute
+		public IEnumerable<IAttributeInstance<T>> GetCustomAttributeInstances<T>(MemberInfo m, bool inherited = true) where T : Attribute
 		{
 			MemberInfo? check = m;
 
 			do
 			{
-				foreach (T t in GetCustomAttributes<T>(check, false).OfType<T>())
+				foreach (T t in this.GetCustomAttributes<T>(check, false).OfType<T>())
 				{
 					yield return new AttributeInstance<T>(check, t, m == check);
 				}
-			} while (inherited && (check = GetBase(m)) is not null);
+			} while (inherited && (check = this.GetBase(m)) is not null);
 		}
 
 		/// <summary>
@@ -55,11 +55,11 @@ namespace Loxifi.Caches
 		/// <param name="m"></param>
 		/// <param name="inherited"></param>
 		/// <returns></returns>
-		public static IEnumerable<T?> GetCustomAttributes<T>(MemberInfo m, bool inherited = true) where T : Attribute
+		public IEnumerable<T?> GetCustomAttributes<T>(MemberInfo m, bool inherited = true) where T : Attribute
 		{
 			IEnumerable<Attribute> toReturn = null;
 
-			if (_cachedAttributes.TryGetValue(m, out List<Attribute> attributes))
+			if (this._cachedAttributes.TryGetValue(m, out List<Attribute> attributes))
 			{
 				toReturn = attributes;
 			}
@@ -69,7 +69,7 @@ namespace Loxifi.Caches
 				{
 					List<Attribute> attributes = new();
 
-					_ = _cachedAttributes.TryAdd(m, attributes);
+					_ = this._cachedAttributes.TryAdd(m, attributes);
 
 					return attributes;
 				});
@@ -80,16 +80,25 @@ namespace Loxifi.Caches
 				yield return t;
 			}
 
-			if (inherited && GetBase(m) is MemberInfo child)
+			if (inherited && this.GetBase(m) is MemberInfo child)
 			{
-				foreach (T ta in GetCustomAttributes<T>(child, inherited).OfType<T>())
+				foreach (T ta in this.GetCustomAttributes<T>(child, inherited).OfType<T>())
 				{
 					yield return ta;
 				}
 			}
 		}
 
-		private static MemberInfo? GetBase(MemberInfo m)
+		/// <summary>
+		/// Returns true if the member has the attribute
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="member"></param>
+		/// <param name="inherited"></param>
+		/// <returns></returns>
+		public bool HasCustomAttribute<T>(MemberInfo member, bool inherited = true) where T : Attribute => this.GetCustomAttributes<T>(member, inherited).Any();
+
+		private MemberInfo? GetBase(MemberInfo m)
 		{
 			if (m is Type t)
 			{

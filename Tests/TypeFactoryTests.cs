@@ -9,7 +9,7 @@ namespace Loxifi.Tests
 		[TestMethod]
 		public void GetAttributesClass()
 		{
-			List<TestAttribute> attributes = TypeFactory.RetrieveAttributes<TestAttribute>(typeof(LocalType));
+			List<TestAttribute> attributes = TypeFactory.Default.RetrieveAttributes<TestAttribute>(typeof(LocalType));
 
 			Assert.AreEqual(1, attributes.Count);
 		}
@@ -17,19 +17,9 @@ namespace Loxifi.Tests
 		[TestMethod]
 		public void GetAttributesPropertyInfo()
 		{
-			List<TestAttribute> attributes = TypeFactory.RetrieveAttributes<TestAttribute>(typeof(LocalType).GetProperty(nameof(LocalType.PropertyA))!);
+			List<TestAttribute> attributes = TypeFactory.Default.RetrieveAttributes<TestAttribute>(typeof(LocalType).GetProperty(nameof(LocalType.PropertyA))!);
 
 			Assert.AreEqual(1, attributes.Count);
-		}
-
-		[TestMethod]
-		public void GetTypeByFullName()
-		{
-			string name = $"TestBinaries.BaseClass";
-
-			Type? t = TypeFactory.GetTypeByFullName(name);
-
-			Assert.IsNotNull(t);
 		}
 
 		[TestMethod]
@@ -37,9 +27,9 @@ namespace Loxifi.Tests
 		{
 			string name = $"TestBinaries.BaseClass";
 
-			Type? t = TypeFactory.GetTypeByFullName(name);
+			Type? t = TypeFactory.Default.GetTypeByFullName(name);
 
-			Type derived = TypeFactory.GetMostDerivedType(t);
+			Type derived = TypeFactory.Default.GetMostDerivedType(t);
 
 			string? fullName = derived?.FullName;
 
@@ -49,9 +39,19 @@ namespace Loxifi.Tests
 		[TestMethod]
 		public void GetProperties()
 		{
-			PropertyInfo[] properties = TypeFactory.GetProperties<LocalType>();
+			PropertyInfo[] properties = TypeFactory.Default.GetProperties<LocalType>();
 
 			Assert.AreEqual(3, properties.Length);
+		}
+
+		[TestMethod]
+		public void GetTypeByFullName()
+		{
+			string name = $"TestBinaries.BaseClass";
+
+			Type? t = TypeFactory.Default.GetTypeByFullName(name);
+
+			Assert.IsNotNull(t);
 		}
 
 		[TestMethod]
@@ -59,7 +59,7 @@ namespace Loxifi.Tests
 		{
 			int i = 0;
 
-			foreach (Type t in TypeFactory.GetAllTypes(true))
+			foreach (Type t in TypeFactory.Default.GetAllTypes(true))
 			{
 				string ns = t.Namespace;
 

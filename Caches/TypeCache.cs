@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Loxifi.Interfaces;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Loxifi.Caches
@@ -6,24 +7,25 @@ namespace Loxifi.Caches
 	/// <summary>
 	/// For loading/caching loaded types
 	/// </summary>
-	public static class TypeCache
+	public class TypeCache : ITypeCache
 	{
-		private static readonly Dictionary<Assembly, IReadOnlyList<Type>> _backingData = new();
-		private static readonly Dictionary<Assembly, Dictionary<Type, List<Type>>> _derivedTypes = new();
+		private readonly Dictionary<Assembly, IReadOnlyList<Type>> _backingData = new();
 
-		public static List<Type> GetDerivedTypes(Assembly a, Type type)
+		private readonly Dictionary<Assembly, Dictionary<Type, List<Type>>> _derivedTypes = new();
+
+		public List<Type> GetDerivedTypes(Assembly a, Type type)
 		{
-			if (!_derivedTypes.TryGetValue(a, out Dictionary<Type, List<Type>> derived))
+			if (!this._derivedTypes.TryGetValue(a, out Dictionary<Type, List<Type>> derived))
 			{
 				derived = new Dictionary<Type, List<Type>>();
-				_derivedTypes.Add(a, derived);
+				this._derivedTypes.Add(a, derived);
 			}
 
 			if (!derived.TryGetValue(type, out List<Type> derivedList))
 			{
 				derivedList = new List<Type>();
 
-				foreach (Type t in GetTypes(a))
+				foreach (Type t in this.GetTypes(a))
 				{
 					if (t.IsAssignableFrom(type))
 					{
@@ -37,11 +39,26 @@ namespace Loxifi.Caches
 			return derivedList;
 		}
 
-		private static IReadOnlyList<Type> CacheTypes(Assembly assembly)
+		/// <summary>
+		/// Gets/Caches a collection of all types in the provided assembly
+		/// </summary>
+		/// <param name="assembly"></param>
+		/// <returns></returns>
+		public IReadOnlyList<Type> GetTypes(Assembly assembly)
+		{
+			if (this._backingData.TryGetValue(assembly, out IReadOnlyList<Type>? list))
+			{
+				return list;
+			}
+
+			return Dispatcher.Current.Invoke(() => this.CacheTypes(assembly));
+		}
+
+		private IReadOnlyList<Type> CacheTypes(Assembly assembly)
 		{
 			List<Type> types = new();
 
-			_backingData.Add(assembly, types);
+			this._backingData.Add(assembly, types);
 
 			try
 			{
@@ -53,21 +70,6 @@ namespace Loxifi.Caches
 			}
 
 			return types;
-		}
-
-		/// <summary>
-		/// Gets/Caches a collection of all types in the provided assembly
-		/// </summary>
-		/// <param name="assembly"></param>
-		/// <returns></returns>
-		public static IReadOnlyList<Type> GetTypes(Assembly assembly)
-		{
-			if (_backingData.TryGetValue(assembly, out IReadOnlyList<Type>? list))
-			{
-				return list;
-			}
-
-			return Dispatcher.Current.Invoke(() => CacheTypes(assembly));
 		}
 	}
 }

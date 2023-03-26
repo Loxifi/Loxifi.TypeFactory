@@ -1,13 +1,14 @@
-﻿using System.Collections.Concurrent;
+﻿using Loxifi.Interfaces;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Loxifi.Caches
 {
-	public static class PropertyCache
+	public class PropertyCache : IPropertyCache
 	{
-		private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _backingData = new();
+		private readonly ConcurrentDictionary<Type, PropertyInfo[]> _backingData = new();
 
-		public static PropertyInfo[] GetProperties(Type t)
+		public PropertyInfo[] GetProperties(Type t)
 		{
 			if (_backingData.TryGetValue(t, out PropertyInfo[] result))
 			{
