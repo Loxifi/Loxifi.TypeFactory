@@ -14,8 +14,6 @@
 		</Description>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile>Properties\License.txt</PackageLicenseFile>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/Loxifi/Loxifi.TypeFactory.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
