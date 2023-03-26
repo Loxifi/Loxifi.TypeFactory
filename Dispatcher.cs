@@ -12,8 +12,6 @@
 
 			try
 			{
-				Monitor.Enter(this._lock);
-
 				toInvoke.Invoke();
 			}
 			finally
@@ -28,8 +26,6 @@
 
 			try
 			{
-				Monitor.Enter(this._lock);
-
 				return toInvoke.Invoke();
 			}
 			finally
