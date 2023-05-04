@@ -48,7 +48,7 @@ namespace Loxifi.Caches
                 {
                     yield return new AttributeInstance<T>(check, t, m == check);
                 }
-            } while (inherited && (check = this.GetBase(m)) is not null);
+            } while (inherited && (check = this.GetBase(check!)) is not null);
         }
 
         /// <summary>

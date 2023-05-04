@@ -32,7 +32,7 @@ namespace Loxifi.Caches
 				this._cachedAssemblies.Add(new CachedAssembly(assemblyLoadPath));
 			}
 
-			foreach (Assembly a in _appDomainIntegrator.GetCurrentAssemblies())
+			foreach (Assembly a in this._appDomainIntegrator.GetCurrentAssemblies())
 			{
 				this.MarkAsLoaded(a);
 			}
@@ -218,7 +218,7 @@ namespace Loxifi.Caches
 				});
 			});
 		}
-		
+
 		/// <summary>
 		/// Adds the assembly to the cache as having failed loading.
 		/// For when assemblies are being loaded but the metadata 
@@ -294,7 +294,7 @@ namespace Loxifi.Caches
 		/// <param name="a"></param>
 		private void MarkAsLoaded(Assembly a)
 		{
-			if(a.IsDynamic && _assemblyCacheSettings.CacheDynamic)
+			if (a.IsDynamic && this._assemblyCacheSettings.CacheDynamic)
 			{
 				return;
 			}

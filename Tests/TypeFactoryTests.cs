@@ -1,4 +1,5 @@
-﻿using Loxifi.Tests.LocalTypes;
+﻿using Loxifi.Interfaces;
+using Loxifi.Tests.LocalTypes;
 using System.Reflection;
 
 namespace Loxifi.Tests
@@ -12,6 +13,14 @@ namespace Loxifi.Tests
 			List<TestAttribute> attributes = TypeFactory.Default.RetrieveAttributes<TestAttribute>(typeof(LocalType));
 
 			Assert.AreEqual(1, attributes.Count);
+		}
+
+		[TestMethod]
+		public void GetCustomAttributeInstances_ValueType()
+		{
+			IAttributeInstance<Attribute>[] attributes = TypeFactory.Default.GetCustomAttributes(typeof(DateTime));
+
+			Assert.AreNotEqual(attributes.Length, 0);
 		}
 
 		[TestMethod]

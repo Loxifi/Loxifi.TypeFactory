@@ -10,7 +10,7 @@ namespace Loxifi.Caches
 
 		public PropertyInfo[] GetProperties(Type t)
 		{
-			if (_backingData.TryGetValue(t, out PropertyInfo[] result))
+			if (this._backingData.TryGetValue(t, out PropertyInfo[] result))
 			{
 				return result.ToArray();
 			}
@@ -19,7 +19,7 @@ namespace Loxifi.Caches
 			{
 				PropertyInfo[] toCache = t.GetProperties();
 
-				_ = _backingData.TryAdd(t, toCache);
+				_ = this._backingData.TryAdd(t, toCache);
 
 				return toCache;
 			});
