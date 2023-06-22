@@ -2,13 +2,14 @@
 
 namespace Loxifi.Interfaces.Settings
 {
-	public interface IAssemblyCacheSettings
-	{
-		IAppDomainIntegrator AppDomainIntegrator { get; }
+    public interface IAssemblyCacheSettings
+    {
+        IAppDomainIntegrator AppDomainIntegrator { get; }
 
-		IAssemblyLoader AssemblyLoader { get; }
+        IAssemblyLoader AssemblyLoader { get; }
 
-		Action<AssemblyLoadException>? OnAssemblyLoadException { get; }
-		bool CacheDynamic { get; }
-	}
+        bool CacheDynamic { get; }
+
+        Action<AssemblyLoadException>? OnAssemblyLoadException { get; }
+    }
 }

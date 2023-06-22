@@ -2,9 +2,10 @@
 
 namespace Loxifi.Interfaces
 {
-	public interface IAssemblyLoader
-	{
-		Assembly Load(string path);
-		IEnumerable<string> ValidAssemblyPaths { get; }
-	}
+    public interface IAssemblyLoader
+    {
+        IEnumerable<string> ValidAssemblyPaths { get; }
+
+        Assembly Load(string path);
+    }
 }

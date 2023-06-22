@@ -1,6 +1,5 @@
 ﻿using Loxifi.Interfaces;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -155,7 +154,7 @@ namespace Loxifi
                 throw new ArgumentNullException(nameof(a));
             }
 
-            foreach (Type t in this._typeCache.GetTypes(a))
+            foreach (Type t in this._typeCache.GetTypes(a, this._settings.TypeLoadTimeoutMs))
             {
                 if (!this._attributeCache.HasCustomAttribute<CompilerGeneratedAttribute>(t, true))
                 {

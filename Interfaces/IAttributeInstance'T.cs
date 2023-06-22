@@ -2,12 +2,12 @@
 
 namespace Loxifi.Interfaces
 {
-	public interface IAttributeInstance<out T> where T : Attribute
-	{
-		MemberInfo DeclaringMember { get; }
+    public interface IAttributeInstance<out T> where T : Attribute
+    {
+        MemberInfo DeclaringMember { get; }
 
-		T Instance { get; }
+        T Instance { get; }
 
-		bool IsInherited { get; }
-	}
+        bool IsInherited { get; }
+    }
 }

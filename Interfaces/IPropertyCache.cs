@@ -2,8 +2,8 @@
 
 namespace Loxifi.Interfaces
 {
-	public interface IPropertyCache
-	{
-		PropertyInfo[] GetProperties(Type t);
-	}
+    public interface IPropertyCache
+    {
+        PropertyInfo[] GetProperties(Type t);
+    }
 }

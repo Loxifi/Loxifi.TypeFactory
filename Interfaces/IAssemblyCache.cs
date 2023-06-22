@@ -2,16 +2,16 @@
 
 namespace Loxifi.Interfaces
 {
-	public interface IAssemblyCache
-	{
-		IEnumerable<Assembly> Loaded { get; }
+    public interface IAssemblyCache
+    {
+        IEnumerable<Assembly> Loaded { get; }
 
-		IEnumerable<Assembly> LoadedAndUnloaded { get; }
+        IEnumerable<Assembly> LoadedAndUnloaded { get; }
 
-		IEnumerable<string> Unloaded { get; }
+        IEnumerable<string> Unloaded { get; }
 
-		Assembly GetByName(string name);
+        Assembly GetByName(string name);
 
-		bool TryGetOrLoad(string assemblyPath, out Assembly? result);
-	}
+        bool TryGetOrLoad(string assemblyPath, out Assembly? result);
+    }
 }
