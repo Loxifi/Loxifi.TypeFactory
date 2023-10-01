@@ -42,6 +42,6 @@
 		<None Include="README.md" Pack="true" PackagePath="README.md" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Extensions\" />
+	  <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />
 	</ItemGroup>
 </Project>

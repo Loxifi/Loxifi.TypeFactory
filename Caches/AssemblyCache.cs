@@ -1,8 +1,8 @@
-﻿using Loxifi.Exceptions;
+﻿using Loxifi.Collections;
+using Loxifi.Exceptions;
 using Loxifi.Interfaces;
 using Loxifi.Interfaces.Settings;
 using Loxifi.Settings;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace Loxifi.Caches
@@ -18,28 +18,7 @@ namespace Loxifi.Caches
 
         private readonly IAssemblyLoader _assemblyLoader;
 
-        private readonly List<CachedAssembly> _cachedAssemblies = new();
-
-        public AssemblyCache(IAssemblyCacheSettings? assemblyCacheSettings = null)
-        {
-            assemblyCacheSettings ??= new AssemblyCacheSettings();
-
-            this._assemblyCacheSettings = assemblyCacheSettings;
-            this._assemblyLoader = assemblyCacheSettings.AssemblyLoader;
-            this._appDomainIntegrator = assemblyCacheSettings.AppDomainIntegrator;
-
-            this._appDomainIntegrator.AssemblyLoad += this.AppDomain_AssemblyLoad;
-
-            foreach (string assemblyLoadPath in this._assemblyLoader.ValidAssemblyPaths)
-            {
-                this._cachedAssemblies.Add(new CachedAssembly(assemblyLoadPath));
-            }
-
-            foreach (Assembly a in this._appDomainIntegrator.GetCurrentAssemblies())
-            {
-                this.MarkAsLoaded(a);
-            }
-        }
+        private readonly CachedAssemblyCollection _cachedAssemblies = new();
 
         /// <summary>
         /// A collection of all loaded assemblies
@@ -67,32 +46,23 @@ namespace Loxifi.Caches
         {
             get
             {
-                HashSet<Assembly> returned = new();
-                foreach (Assembly assembly in this.Loaded)
-                {
-                    yield return assembly;
-                    _ = returned.Add(assembly);
-                }
+                HashSet<string> returnedPaths = new();
 
                 for (int i = 0; i < this._cachedAssemblies.Count; i++)
                 {
                     CachedAssembly ca = this._cachedAssemblies[i];
-
-                    if (ca.IsLoaded)
+                    if (returnedPaths.Add(ca.Path))
                     {
-                        if (returned.Add(ca.Assembly))
+                        if (ca.IsLoaded)
                         {
                             yield return ca.Assembly;
                         }
-                    }
-                    else
-                    {
-                        if (this.TryGetOrLoad(ca.Path, out Assembly loaded))
+                        else if (this.TryGetOrLoad(ca.Path, out Assembly loaded))
                         {
                             yield return loaded;
-                            _ = returned.Add(loaded);
                         }
                     }
+
                 }
             }
         }
@@ -111,6 +81,27 @@ namespace Loxifi.Caches
                         yield return this._cachedAssemblies[i].Path;
                     }
                 }
+            }
+        }
+
+        public AssemblyCache(IAssemblyCacheSettings? assemblyCacheSettings = null)
+        {
+            assemblyCacheSettings ??= new AssemblyCacheSettings();
+
+            this._assemblyCacheSettings = assemblyCacheSettings;
+            this._assemblyLoader = assemblyCacheSettings.AssemblyLoader;
+            this._appDomainIntegrator = assemblyCacheSettings.AppDomainIntegrator;
+
+            this._appDomainIntegrator.AssemblyLoad += this.AppDomain_AssemblyLoad;
+
+            foreach (string assemblyLoadPath in this._assemblyLoader.ValidAssemblyPaths)
+            {
+                this._cachedAssemblies.Add(CachedAssembly.FromPath(assemblyLoadPath));
+            }
+
+            foreach (Assembly a in this._appDomainIntegrator.GetCurrentAssemblies())
+            {
+                this.MarkAsLoaded(a);
             }
         }
 
@@ -184,7 +175,6 @@ namespace Loxifi.Caches
                         if (assembly.Path == assemblyPath)
                         {
                             assembly.Assembly = loaded;
-                            assembly.Name = loaded.FullName;
                             break;
                         }
                     }
@@ -213,11 +203,9 @@ namespace Loxifi.Caches
         {
             Dispatcher.Current.Invoke(() =>
             {
-                this._cachedAssemblies.Add(new CachedAssembly(assemblyPath)
-                {
-                    IsLoaded = false,
-                    LoadFailed = true
-                });
+                CachedAssembly a = CachedAssembly.FromPath(assemblyPath);
+                a.LoadFailed = true;
+                this._cachedAssemblies.Add(a);
             });
         }
 
@@ -226,19 +214,7 @@ namespace Loxifi.Caches
         /// </summary>
         /// <param name="a"></param>
         /// <param name="assemblyPath"></param>
-        private void AddAsLoaded(Assembly a, string? assemblyPath)
-        {
-            assemblyPath ??= a.Location;
-
-            Dispatcher.Current.Invoke(() =>
-            {
-                this._cachedAssemblies.Add(new CachedAssembly(assemblyPath)
-                {
-                    Assembly = a,
-                    IsLoaded = true
-                });
-            });
-        }
+        private void AddAsLoaded(CachedAssembly a) => Dispatcher.Current.Invoke(() => this._cachedAssemblies.Add(a));
 
         /// <summary>
         /// Occurs on an app domain unload
@@ -302,39 +278,18 @@ namespace Loxifi.Caches
                 return;
             }
 
-            string assemblyPath = a.IsDynamic ? a.FullName : a.Location;
+            CachedAssembly cachedAssembly = CachedAssembly.FromAssembly(a);
 
             for (int i = 0; i < this._cachedAssemblies.Count; i++)
             {
-                if (this._cachedAssemblies[i].Path == assemblyPath)
+                if (this._cachedAssemblies[i] == cachedAssembly)
                 {
-                    this._cachedAssemblies[i].IsLoaded = true;
                     this._cachedAssemblies[i].Assembly = a;
-                    this._cachedAssemblies[i].Name = a.FullName;
                     return;
                 }
             }
 
-            this.AddAsLoaded(a, assemblyPath);
+            this.AddAsLoaded(cachedAssembly);
         }
-    }
-
-    [DebuggerDisplay("{path,nq}")]
-    internal class CachedAssembly
-    {
-        public CachedAssembly(string path)
-        {
-            this.Path = path;
-        }
-
-        public Assembly Assembly { get; set; }
-
-        public bool IsLoaded { get; set; }
-
-        public bool LoadFailed { get; set; }
-
-        public string Name { get; set; }
-
-        public string Path { get; private set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Loxifi.Interfaces;
+﻿using Loxifi.Collections;
+using Loxifi.Interfaces;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -9,21 +10,21 @@ namespace Loxifi.Caches
     /// </summary>
     public class TypeCache : ITypeCache
     {
-        private readonly Dictionary<Assembly, IReadOnlyList<Type>> _backingData = new();
+        private readonly Dictionary<Assembly, CachedTypeCollection> _backingData = new();
 
-        private readonly Dictionary<Assembly, Dictionary<Type, List<Type>>> _derivedTypes = new();
+        private readonly Dictionary<Assembly, Dictionary<Type, CachedTypeCollection>> _derivedTypes = new();
 
-        public List<Type> GetDerivedTypes(Assembly a, Type type, int timeoutMs)
+        public CachedTypeCollection GetDerivedTypes(Assembly a, Type type, int timeoutMs)
         {
-            if (!this._derivedTypes.TryGetValue(a, out Dictionary<Type, List<Type>> derived))
+            if (!this._derivedTypes.TryGetValue(a, out Dictionary<Type, CachedTypeCollection> derived))
             {
-                derived = new Dictionary<Type, List<Type>>();
+                derived = new Dictionary<Type, CachedTypeCollection>();
                 this._derivedTypes.Add(a, derived);
             }
 
-            if (!derived.TryGetValue(type, out List<Type> derivedList))
+            if (!derived.TryGetValue(type, out CachedTypeCollection derivedList))
             {
-                derivedList = new List<Type>();
+                derivedList = new CachedTypeCollection();
 
                 foreach (Type t in this.GetTypes(a, timeoutMs))
                 {
@@ -44,9 +45,9 @@ namespace Loxifi.Caches
         /// </summary>
         /// <param name="assembly"></param>
         /// <returns></returns>
-        public IReadOnlyList<Type> GetTypes(Assembly assembly, int timeoutMs)
+        public CachedTypeCollection GetTypes(Assembly assembly, int timeoutMs)
         {
-            if (this._backingData.TryGetValue(assembly, out IReadOnlyList<Type>? list))
+            if (this._backingData.TryGetValue(assembly, out CachedTypeCollection? list))
             {
                 return list;
             }
@@ -54,9 +55,9 @@ namespace Loxifi.Caches
             return Dispatcher.Current.Invoke(() => this.CacheTypes(assembly, timeoutMs));
         }
 
-        private IReadOnlyList<Type> CacheTypes(Assembly assembly, int timeoutMs)
+        private CachedTypeCollection CacheTypes(Assembly assembly, int timeoutMs)
         {
-            List<Type> types = new();
+            CachedTypeCollection types = new();
 
             this._backingData.Add(assembly, types);
 
